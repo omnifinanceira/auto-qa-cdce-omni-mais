@@ -1,0 +1,26 @@
+{
+  "name": "playwright",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "dev": "cross-env env=dev playwright test --project=chromium",
+    "debug:dev": "cross-env env=dev playwright test --debug --project=chromium"
+  },
+  "author": "Cedilaine Bordignon",
+  "license": "ISC",
+  "devDependencies": {
+    "@faker-js/faker": "^8.4.1",
+    "@playwright/test": "^1.43.1",
+    "@types/node": "^20.11.2",
+    "cross-env": "^7.0.3",
+    "cep-brazil": "^0.0.2",
+    "docs-validator-br": "^1.0.2",
+    "typescript": "^5.3.3",
+    "validation-br": "^1.4.5"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
