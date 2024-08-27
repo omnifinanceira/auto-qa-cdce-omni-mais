@@ -5,10 +5,6 @@ import * as cnpj from "validation-br/dist/cnpj";
 import * as cpf from "validation-br/dist/cpf";
 import { Utility } from "../../support/utils/utility";
 
-// const sessionStorage = JSON.parse(
-//   fs.readFileSync("playwright/.auth/session.json", "utf-8")
-// );
-
 test.beforeEach(async ({ context, baseURL }) => {
   const sessionStorage = JSON.parse(
     fs.readFileSync("playwright/.auth/session.json", "utf-8")
