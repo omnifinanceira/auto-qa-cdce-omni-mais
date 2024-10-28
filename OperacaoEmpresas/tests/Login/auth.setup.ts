@@ -1,5 +1,5 @@
 import { test as setup, expect } from "@playwright/test";
-import ENV from "../../support/utils/env";
+import ENV from "../../../setup/env";
 import fs from "node:fs";
 
 const userName = ENV.APPUSERNAME;

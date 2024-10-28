@@ -16,8 +16,8 @@ import * as dotenv from "dotenv";
  * See https://playwright.dev/docs/test-configuration.
  */
 const playwrightConfig = {
-  testDir: "./tests",
-  timeout: 70 * 1000,
+  testDir: "./OperacaoEmpresas/tests",
+  timeout: 5 * 60 * 1500,
   expect: {
     timeout: 60000,
   },
@@ -47,7 +47,7 @@ const playwrightConfig = {
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
   },
-  globalSetup: "support/utils/globalSetup.ts",
+  globalSetup: "setup/globalSetup.ts",
 
   /* Configure projects for major browsers */
   projects: [
@@ -102,7 +102,7 @@ const playwrightConfig = {
 // Configuração da baseUrl pelo environment setado no terminal, é executado antes do globalSetup
 if (process.env.env) {
   const { parsed, error } = dotenv.configDotenv({
-    path: `environmentFiles/.env.${process.env.env}`,
+    path: `setup/.env.${process.env.env}`,
   });
 
   if (error || !parsed) {

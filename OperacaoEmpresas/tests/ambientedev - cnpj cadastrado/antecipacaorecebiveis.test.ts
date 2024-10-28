@@ -3,7 +3,8 @@ import { test, expect, chromium } from "@playwright/test";
 import fs from "node:fs";
 import * as cnpj from "validation-br/dist/cnpj";
 import * as cpf from "validation-br/dist/cpf";
-import { Utility } from "../../support/utils/utility";
+import { Utility } from "../../utils/utility";
+import { HomePage } from "../../Pages/HomePage/HomePage";
 
 test.beforeEach(async ({ context, baseURL }) => {
   const sessionStorage = JSON.parse(
@@ -22,27 +23,18 @@ test.beforeEach(async ({ context, baseURL }) => {
 });
 
 test("Antecipação de Recebiveis - CNPJ cadastrado", async ({ page }) => {
+  const homePage = new HomePage(page);
+
   test.slow();
-  await page.goto("/");
-  await page.click("css=button >> text=Nova");
-  //await page.getByRole('button', { name: 'Nova' }).click(); /// tambem esta certo
-  //await page.locator('[ng-reflect-router-link="/capital-giro"]').click();
-  await page
-    .locator('[ng-reflect-router-link="/antecipacao-recebiveis"]')
-    .click();
-  await page.goto(
-    "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/antecipacao-recebiveis"
-  );
-  await page
-    .locator('[ng-reflect-placeholder="CNPJ"]')
-    .first()
-    .fill("35613456130900");
+  await homePage.enterHomePage();
+
+  const antecipacaoRecebiveis = await homePage.entrarAntecipacaoRecebiveis();
+
+  await antecipacaoRecebiveis.escreverCNPJ("35613456130900");
+
   await page.locator('[ng-reflect-placeholder="CNPJ"]').first().press("Tab");
-  //   await page.waitForResponse(
-  //     (response) =>
-  //       response.url().includes("/crivo-last-result") && response.status() === 200
-  //   );
-  await page.waitForTimeout(7000);
+
+  await page.waitForTimeout(5000);
 
   ////COMANDO PARA GERAÇÃO DE DATAS
   const currentDate = new Date();
@@ -70,9 +62,9 @@ test("Antecipação de Recebiveis - CNPJ cadastrado", async ({ page }) => {
     .locator('[data-placeholder="Valor do Limite"]')
     .pressSequentially("828100");
   const inputTaxa = page.locator('[formcontrolname="taxaMensal"]');
-  await inputTaxa.pressSequentially("2");
+  await inputTaxa.fill("1.76");
   await inputTaxa.press("Tab");
-  // await page.locator('[data-placeholder="Número do Convênio"]').fill("19923");
+
   await page
     .locator('[data-placeholder="Data de Vencimento"]')
     .fill(formattedFutureDate);
@@ -81,18 +73,18 @@ test("Antecipação de Recebiveis - CNPJ cadastrado", async ({ page }) => {
     .locator('[data-placeholder="Razão Social"]')
     .last()
     .fill("TESTE JUNIOR");
+  await page.locator('[data-placeholder="Valor do Limite"]').press("Tab");
 
   // // //// /GARANTIA//////////
   await page.click("css=div >> text=Garantias");
   await page.waitForTimeout(5000);
   await page.click('[ng-reflect-message="Adicionar Garantia"]');
   await page.locator('[formcontrolname="tipoGarantia"]').click();
-  //await page.getByLabel('Tipo Garantia *').locator('span').click();
+
   await page.getByText("Avalista - PF").click();
-  //await page.getByRole('textbox', { name: 'CPF', exact: true }).click({
+
   button: "right";
-  //});
-  //await page.locator('[formcontrolname="cpf"]').nth(2).fill(cpf.fake());
+
   await page
     .getByRole("textbox", { name: "CPF", exact: true })
     .fill("136.754.650-80");
@@ -145,12 +137,11 @@ test("Antecipação de Recebiveis - CNPJ cadastrado", async ({ page }) => {
   await page.waitForTimeout(3000);
   await page.getByLabel("% Sobre a operação *").click();
   await page.getByLabel("% Sobre a operação *").fill("100");
-  //await page.waitForTimeout(3000);
+
   await page.getByLabel("% Sobre a operação *").press("Tab");
   await page.locator('[formcontrolname="tipoGarantia"]').press("Tab");
   await page.getByLabel("% Sobre a operação *").press("Tab");
-  // await page.getByText("AUTOMOVEL").press("Tab");
-  // await page.getByLabel("UF de licenciamento *").press("Tab");
+
   await page.getByRole("button", { name: "Salvar" }).click();
   await page.getByRole("button", { name: "Salvar" }).click();
   /////AÇÃO DE ENVIAR PROPOSTA 1    > PRE PROPOSTA PARA ANALISE COMERCIAL
@@ -164,14 +155,22 @@ test("Antecipação de Recebiveis - CNPJ cadastrado", async ({ page }) => {
   const proposta = await page
     .locator('[id="header-proposta-idPropostaCliente"]')
     .innerText();
-  await page.getByRole("button", { name: "Salvar" }).click();
   const id = await page.locator('[id="etapas-proposta__id"]').innerText();
-  await page.waitForTimeout(10000);
+  await page.getByRole("button", { name: "Salvar" }).click();
+  const preProposta = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/antecipacao-recebiveis/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await preProposta;
 
   let url =
     "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/antecipacao-recebiveis/";
   await page.goto(url + id);
-  await page.waitForTimeout(8000);
+
   await page.reload();
 
   /////AÇÃO DE ENVIAR PROPOSTA 2.1    > Analise PLD PARA ANALISE COMERCIAL
@@ -180,11 +179,18 @@ test("Antecipação de Recebiveis - CNPJ cadastrado", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(10000);
-  //await page.pause();
+  const analisePld = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/antecipacao-recebiveis/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await analisePld;
 
   await page.goto(url + id);
-  await page.waitForTimeout(8000);
+
   await page.reload();
 
   /////AÇÃO DE ENVIAR PROPOSTA 3    > ANALISE COMERCIAL PARA ANALISE DE CREDITO
@@ -193,34 +199,49 @@ test("Antecipação de Recebiveis - CNPJ cadastrado", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  //await page.pause();
-  await page.waitForTimeout(10000);
+  const analiseComercial = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/antecipacao-recebiveis/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await analiseComercial;
 
   await page.goto(
     "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/fila-agente"
   );
   await page.click("css=div >> text=Em Análise");
-  //await page.getByRole('button').filter({ hasText: ' Filtrar Propostas ' }).click();
+
   await page
     .getByRole("button")
     .filter({ hasText: " Filtrar Propostas " })
     .nth(1)
     .click();
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(2000);
   await page.locator('[data-placeholder="Nº Proposta"]').fill(proposta);
-  await page.waitForTimeout(10000);
-  //await page.pause();
+  await page.waitForTimeout(6000);
+
   await page
     .locator('[ng-reflect-message="Antecipação de Recebíveis"]')
     .click();
   await expect(page.locator(".mat-checkbox-inner-container")).toBeVisible({
     timeout: 30_000,
   });
-  // await page.waitForTimeout(10000);
 
   await page.click("css=div >> text=Bureau de Crédito");
   await page.click("css=div >> text=Redisparo da crivo Manual");
-  await page.waitForTimeout(10000);
+  const statusMock = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/antecipacao-recebiveis/api/mock/crivo") &&
+        response.status() === 200,
+      { timeout: 80_000 }
+    ),
+  ]);
+  await statusMock;
+  //await page.waitForTimeout(8000);
   /////AÇÃO DE ENVIAR PROPOSTA 4    >  ANALISE DE CREDITO PARA APROVADO
   await page.getByRole("button", { name: " Ações " }).click();
   await expect(page.locator('[formcontrolname="acao"]')).toBeVisible({
@@ -231,9 +252,25 @@ test("Antecipação de Recebiveis - CNPJ cadastrado", async ({ page }) => {
   await page.locator('[data-placeholder="Data do Comitê"]').fill(formattedDate);
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(120000);
-  //await page.pause();
-  //await page.reload();
+  const etapaCrivo = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/antecipacao-recebiveis/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+    page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            "/mesa-credito-pj/api/agent-queue?status=PRE_PROPOSTA&sort=id,asc&page=0&size=10"
+          ) && response.status() === 200,
+      { timeout: 13_0000 }
+    ),
+  ]);
+
+  await etapaCrivo;
   await page.goto(url + id);
   await page.reload();
 
@@ -242,7 +279,7 @@ test("Antecipação de Recebiveis - CNPJ cadastrado", async ({ page }) => {
   await page.getByRole("button", { name: " Buscar conta(s) " }).click();
   await page.waitForTimeout(8000);
   await page.locator('[formcontrolname="codigoAgencia"]').first().fill("1234");
-  //await page.waitForTimeout(2000);
+
   await page.locator('[formcontrolname="descricaoAgencia"]').first().click();
   await page
     .locator('[formcontrolname="descricaoAgencia"]')
@@ -258,17 +295,31 @@ test("Antecipação de Recebiveis - CNPJ cadastrado", async ({ page }) => {
     .fill("12");
   await page.locator('[formcontrolname="contaVinculada"]').fill("789123");
   await page.click("css=button >> text=Salvar");
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(3000);
 
   await page.getByRole("button", { name: " Ações " }).click();
   await page.click('[formcontrolname="acao"]');
   await page.getByText("Enviar Pré-Formalização").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-
+  const statusAprovado = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/antecipacao-recebiveis/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await statusAprovado;
   await page.goto(url + id);
-  await page.waitForTimeout(7000);
+
   await page.reload();
+  ////NUMERO DO CONVENIO
+  await page.click("css=div >> text=Proposta de Negócios");
+
+  await page.locator('[data-placeholder="Número do Convênio"]').fill("123");
+  await page.getByRole("button", { name: "Salvar" }).click();
+  await page.waitForTimeout(3000);
 
   ////AÇÃO DE ENVIAR PROPOSTA 5   >  PRE FORMALIZAÇÃO PARA FORMALIZAÇÃO
 
@@ -277,42 +328,38 @@ test("Antecipação de Recebiveis - CNPJ cadastrado", async ({ page }) => {
   await page.getByText("Enviar Formalização").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(3000);
+  const preFormalizacao = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/antecipacao-recebiveis/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_0000 }
+    ),
+  ]);
+  await preFormalizacao;
 
   await page.goto(url + id);
-  await page.waitForTimeout(10000);
+  await page.waitForTimeout(8000);
   await page.reload();
-  ////NUMERO DO CONVENIO
-  await page.click("css=div >> text=Proposta de Negócios");
-  // await page.goto(
-  //   "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/antecipacao-recebiveis/"
-  // );
-  await page.locator('[data-placeholder="Número do Convênio"]').fill("19923");
-  await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(5000);
-  await page.reload();
-  ////AÇÃO DE ENVIAR PROPOSTA 5.1   >  PRE FORMALIZAÇÃO PARA FORMALIZAÇÃO
 
-  await page.getByRole("button", { name: " Ações " }).click();
-  await page.click('[formcontrolname="acao"]');
-  await page.getByText("Enviar Formalização").click();
-  await page.locator('[formcontrolname="parecer"]').fill("Teste");
-  await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(3000);
-
-  await page.goto(url + id);
-  await page.waitForTimeout(10000);
-  await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 6   > FORMALIZAÇÃO PARA AGUARDANDO ASSINATURA
   await page.getByRole("button", { name: " Ações " }).click();
   await page.click('[formcontrolname="acao"]');
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(5000);
+  const statusFormalizacao = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/antecipacao-recebiveis/api/proposals") &&
+        response.status() === 200,
+      { timeout: 80_000 }
+    ),
+  ]);
+  await statusFormalizacao;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(8000);
+
   await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 7   > AGUARDANDO ASSINATURA PARA AGUARDANDO LIBERAÇÃO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -320,10 +367,18 @@ test("Antecipação de Recebiveis - CNPJ cadastrado", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  const aguardandoAssinatura = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/antecipacao-recebiveis/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await aguardandoAssinatura;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(8000);
+
   await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 8   > AGUARDANDO LIBERAÇÃO PARA AGUARDANDO CONTRATO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -331,7 +386,14 @@ test("Antecipação de Recebiveis - CNPJ cadastrado", async ({ page }) => {
   await page.locator('[ng-reflect-value="approve"]').click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
-
+  const aguardandoLiberacao = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/antecipacao-recebiveis/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await aguardandoLiberacao;
   await page.close();
 });

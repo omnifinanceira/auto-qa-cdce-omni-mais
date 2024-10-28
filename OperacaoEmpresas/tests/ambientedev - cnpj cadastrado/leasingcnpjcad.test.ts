@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import * as cnpj from "validation-br/dist/cnpj";
 import * as cpf from "validation-br/dist/cpf";
-import { Utility } from "../../support/utils/utility";
+import { Utility } from "../../utils/utility";
 
 test.beforeEach(async ({ context, baseURL }) => {
   const sessionStorage = JSON.parse(
@@ -19,7 +19,6 @@ test.beforeEach(async ({ context, baseURL }) => {
     { storage: sessionStorage, baseURL }
   );
 });
-
 test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
   test.slow();
   await page.goto("/");
@@ -54,7 +53,7 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
     .toString()
     .padStart(2, "0")}-${futureDate.getFullYear()}`;
 
-  ////PROPOSTA DE NEGOCIO
+  ///PROPOSTA DE NEGOCIO
   await page.click("css=div >> text=Proposta de Negócios");
   await page.goto(
     "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/leasing"
@@ -71,7 +70,7 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
   await inputTaxa.press("Tab");
   await page
     .locator('[data-placeholder="Valor Tarifa de Cadastro"]')
-    .pressSequentially("1.00");
+    .pressSequentially("1,43");
   await page
     .locator('[data-placeholder="Valor do(s) bem(s)"]')
     .pressSequentially("25000000");
@@ -88,13 +87,21 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
     .locator('[data-placeholder="Vencimento Primeira Parcela"]')
     .press("Tab");
   await page.getByText(" Calcular ").click();
-  await page.waitForTimeout(40000);
-  await page.getByText("Cálculo realizado com sucesso!");
+  const calculoRequests = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/leasing/api/calculations/financed-amount") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+
+  await calculoRequests;
 
   // //// /GARANTIA///
   await page.click("css=div >> text=Garantias");
-  //await page.pause();
-  await page.waitForTimeout(5000);
+
+  await page.waitForTimeout(3000);
   await page.locator("omni-garantias-shared").getByRole("button").click();
   await page.getByLabel("Tipo Garantia *").locator("div").nth(2).click();
   await page.getByText("Máquinas e Equipamentos").click();
@@ -129,22 +136,19 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
     .innerText();
   await page.getByRole("button", { name: "Salvar" }).click();
   const id = await page.locator('[id="etapas-proposta__id"]').innerText();
-  await page.waitForTimeout(10000);
+  await page.waitForTimeout(5000);
 
   let url =
     "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/leasing/";
   await page.goto(url + id);
-  await page.waitForTimeout(8000);
-  await page.reload();
 
-  /////AÇÃO DE ENVIAR PROPOSTA 1    > PRE PROPOSTA PARA ANALISE COMERCIAL
+  // /////AÇÃO DE ENVIAR PROPOSTA 1    > PRE PROPOSTA PARA ANALISE COMERCIAL
   await page.getByRole("button", { name: " Ações " }).click();
   await page.click('[formcontrolname="acao"]');
   await page.getByText("Enviar Proposta").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
   await page.waitForTimeout(3000);
-
   await page.goto(url + id);
   await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 1.1    > PRE PROPOSTA PARA ANALISE COMERCIAL
@@ -153,11 +157,18 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
   await page.getByText("Enviar Proposta").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(3000);
+  const preProposta = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/leasing/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await preProposta;
 
   /////AÇÃO DE ENVIAR PROPOSTA 2.1    > Analise PLD PARA ANALISE COMERCIAL
-  // let url =
-  //   "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/leasing/";
+
   await page.goto(url + id);
   await page.reload();
   await page.getByRole("button", { name: " Ações " }).click();
@@ -165,9 +176,16 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  //await page.waitForTimeout(10000);
-  //await page.pause();
-  await page.waitForTimeout(8000);
+  const analisePld = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/leasing/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await analisePld;
+
   await page.goto(url + id);
   await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 3    > ANALISE COMERCIAL PARA ANALISE DE CREDITO
@@ -176,8 +194,15 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  //await page.pause();
-  await page.waitForTimeout(10000);
+  const analiseComercial = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/leasing/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await analiseComercial;
 
   await page.goto(
     "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/fila-agente"
@@ -189,19 +214,18 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
     .filter({ hasText: " Filtrar Propostas " })
     .nth(1)
     .click();
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(3000);
   await page.locator('[data-placeholder="Nº Proposta"]').fill(proposta);
-  await page.waitForTimeout(10000);
+  await page.waitForTimeout(6000);
   //await page.pause();
   await page.locator('[ng-reflect-message="Leasing"]').click();
   await expect(page.locator(".mat-checkbox-inner-container")).toBeVisible({
     timeout: 30_000,
   });
-  // await page.waitForTimeout(10000);
 
   await page.click("css=div >> text=Bureau de Crédito");
   await page.click("css=div >> text=Redisparo da crivo Manual");
-  await page.waitForTimeout(10000);
+  await page.waitForTimeout(8000);
   await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 4    >  ANALISE DE CREDITO PARA APROVADO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -213,9 +237,19 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
   await page.locator('[data-placeholder="Data do Comitê"]').fill(formattedDate);
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(120000);
-  //await page.pause();
-  //await page.reload();
+  const etapaCrivo = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            "/mesa-credito-pj/api/economic-groups/find-by-member-cnpj"
+          ) && response.status() === 200,
+      { timeout: 15_0000 }
+    ),
+  ]);
+
+  await etapaCrivo;
   await page.goto(url + id);
   await page.reload();
   ////AÇÃO DE ENVIAR PROPOSTA 5   >  APROVADO PARA PRE FORMALIZAÇÃO
@@ -228,7 +262,7 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
   await page.locator('[formcontrolname="codigoBanco"]').first().click();
   await page.getByText("613").first().click();
   await page.locator('[formcontrolname="codigoAgencia"]').first().fill("1234");
-  //await page.waitForTimeout(2000);
+
   await page.locator('[formcontrolname="descricaoAgencia"]').first().click();
   await page
     .locator('[formcontrolname="descricaoAgencia"]')
@@ -250,10 +284,18 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
   await page.getByText("Enviar Pré-Formalização").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  const statusAprovado = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/leasing/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await statusAprovado;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(10000);
+
   await page.reload();
   ////AÇÃO DE ENVIAR PROPOSTA 5   >  PRE FORMALIZAÇÃO PARA FORMALIZAÇÃO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -261,17 +303,31 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
   await page.getByText("Enviar Formalização").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  //await page.waitForTimeout(1000);
+  const preFormalizacao = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/leasing/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_0000 }
+    ),
+  ]);
+  await preFormalizacao;
 
   await page.goto(url + id);
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(3000);
   await page.reload();
   await page.click("css=div >> text=Proposta de Negócios");
   await page.click('[ng-reflect-message="Gerar Contrato"]');
-  //await page.waitForTimeout(8000);
+  const gerarContrato = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/leasing/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_0000 }
+    ),
+  ]);
+  await gerarContrato;
 
-  await page.goto(url + id);
-  await page.waitForTimeout(8000);
   await page.reload();
 
   /////AÇÃO DE ENVIAR PROPOSTA 6   > FORMALIZAÇÃO PARA AGUARDANDO ASSINATURA
@@ -280,10 +336,18 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(5000);
+  const statusFormalizacao = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/leasing/api/proposals") &&
+        response.status() === 200,
+      { timeout: 80_000 }
+    ),
+  ]);
+  await statusFormalizacao;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(8000);
+
   await page.reload();
 
   /////AÇÃO DE ENVIAR PROPOSTA 7   > AGUARDANDO ASSINATURA PARA AGUARDANDO LIBERAÇÃO
@@ -292,10 +356,18 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  const aguardandoAssinatura = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/leasing/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await aguardandoAssinatura;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(8000);
+
   await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 8   > AGUARDANDO LIBERAÇÃO PARA AGUARDANDO CONTRATO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -303,17 +375,23 @@ test("Leasing - CNPJ ja cadastrado", async ({ page }) => {
   await page.locator('[ng-reflect-value="approve"]').click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  const aguardandoLiberacao = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/leasing/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
 
   await page.goto(url + id);
-  //await page.waitForTimeout(5000);
+
   await page.reload();
-  // /////AÇÃO DE ENVIAR PROPOSTA 9   > AGUARDANDO CONTRATO PARA FINALIZADO
-  // await page.getByRole("button", { name: " Ações " }).click();
-  // await page.click('[formcontrolname="acao"]');
-  // await page.locator('[ng-reflect-value="approve"]').click();
-  // await page.locator('[formcontrolname="parecer"]').fill("Teste");
-  // await page.getByRole("button", { name: "Salvar" }).click();
+  /////AÇÃO DE ENVIAR PROPOSTA 9   > AGUARDANDO CONTRATO PARA FINALIZADO
+  await page.getByRole("button", { name: " Ações " }).click();
+  await page.click('[formcontrolname="acao"]');
+  await page.locator('[ng-reflect-value="approve"]').click();
+  await page.locator('[formcontrolname="parecer"]').fill("Teste");
+  await page.getByRole("button", { name: "Salvar" }).click();
   await page.close();
-  //await page.pause();
 });

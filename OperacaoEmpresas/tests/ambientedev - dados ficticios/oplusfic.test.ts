@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import * as cnpj from "validation-br/dist/cnpj";
 import * as cpf from "validation-br/dist/cpf";
-import { Utility } from "../../support/utils/utility";
+import { Utility } from "../../utils/utility";
 
 test.beforeEach(async ({ context, baseURL }) => {
   const sessionStorage = JSON.parse(
@@ -20,17 +20,15 @@ test.beforeEach(async ({ context, baseURL }) => {
   );
 });
 
-test("Giro Rotativo - Dados Dinamicos e Ficticios", async ({ page }) => {
+test("Omni Plus - Dados Dinamicos e Ficticios", async ({ page }) => {
   test.slow();
   await page.goto("/");
   await page.click("css=button >> text=Nova");
   //await page.getByRole('button', { name: 'Nova' }).click(); /// tambem esta certo
   //await page.locator('[ng-reflect-router-link="/capital-giro"]').click();
-  await page
-    .locator('[ng-reflect-router-link="/capital-giro-rotativo"]')
-    .click();
+  await page.locator('[ng-reflect-router-link="/limite-contratual"]').click();
   await page.goto(
-    "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/capital-giro-rotativo"
+    "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/limite-contratual"
   );
   ///////////QUALIFICAÇÃO DA EMPRESA//////
   await page.locator('[ng-reflect-placeholder="CNPJ"]').fill(cnpj.fake());
@@ -45,18 +43,18 @@ test("Giro Rotativo - Dados Dinamicos e Ficticios", async ({ page }) => {
   await page
     .locator('[ng-reflect-placeholder="Faturamento Atual"]')
     .press("Tab");
-  //await page.waitForTimeout(5000);
+
   ///COMANDO PARA SALVAR A ID DA PROPOSTA ////
 
   await page.waitForTimeout(2000);
-  //await page.waitForTimeout(8000);
+
   await page
     .locator('[ng-reflect-placeholder="Faturamento Anterior"]')
     .pressSequentially("6500000");
   await page
     .locator('[data-placeholder="Data da Constituição"]')
     .fill("26/02/1900");
-  //await page.waitForTimeout(5000);
+
   await page.click('[placeholder="CNAE"]');
   await page.getByText(" 7311-4/00 - Agências de publicidade ").click();
   await page
@@ -106,14 +104,11 @@ test("Giro Rotativo - Dados Dinamicos e Ficticios", async ({ page }) => {
   await page.getByLabel("2001").click();
   await page.getByLabel("01/02/").click();
   await page.getByLabel("6 de fevereiro de 2001", { exact: true }).click();
-  // await page
-  //   .locator('[placeholder="Início da Vigência"]')
-  //   .nth(1)
-  //   .fill("10/02/1992");
+
   await page.locator(".mat-checkbox-inner-container").click();
   await page.click("css=button >> text=Salvar");
 
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(3000);
   //ENDEREÇOS//
   await page.click("css=div >> text=Endereços");
   ///CONSULTAR CEP DO BRASIL///
@@ -167,12 +162,12 @@ test("Giro Rotativo - Dados Dinamicos e Ficticios", async ({ page }) => {
     .locator('[data-placeholder="Data de nascimento"]')
     .first()
     .press("Tab");
-  //await page.locator('[formcontrolname="devedorSolidario"]').click();
+
   await page
     .locator('[formcontrolname="email"]')
     .last()
     .fill(faker.internet.email());
-  //await page.locator('[formcontrolname="email"]').last().press("Tab");
+
   ///CAMPOS NOVOS///
   await page.locator('[formcontrolname="rg"]').fill("278783752767654");
   await page.locator('[placeholder="UF de emissão do RG"]').click();
@@ -181,10 +176,10 @@ test("Giro Rotativo - Dados Dinamicos e Ficticios", async ({ page }) => {
   await page.locator('[formcontrolname="celular"]').first().press("Tab");
 
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(4000);
 
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(4000);
 
   //PRINCIPAIS CLIENTES///
   await page.click("css=div >> text=Principais Clientes");
@@ -236,79 +231,107 @@ test("Giro Rotativo - Dados Dinamicos e Ficticios", async ({ page }) => {
   //PROPOSTA DE NEGOCIO/////
   await page.click("css=div >> text=Proposta de Negócios");
   await page.goto(
-    "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/capital-giro-rotativo"
+    "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/limite-contratual"
   );
   await page.locator('[placeholder="Tipo de Operação"]').click();
   await page.getByText(" Implantação ").click();
   await page
     .locator('[data-placeholder="Valor do Limite"]')
-    .pressSequentially("15000000");
+    .pressSequentially("828100");
   const inputTaxa = page.locator('[formcontrolname="taxaMensal"]');
-  await inputTaxa.pressSequentially("2");
+  await inputTaxa.fill("1.43");
   await inputTaxa.press("Tab");
-  await page.locator('[placeholder="Índice Taxa Pós-Fixada"]').click();
-  await page.getByText(" SELIC ").click();
-  await page.locator('[data-placeholder="Prazo"]').pressSequentially("76");
-  await page.getByRole("button", { name: "Open calendar" }).click();
-  await page.getByLabel("Choose month and year").click();
-  await page.getByLabel("2024").click();
-  await page.getByLabel("01/07/").click();
-  await page.getByLabel("15 de julho de").click();
-  // await page
-  //   .locator('[data-placeholder="Início da Vigência"]')
-  //   .nth(2)
-  //   .fill(formattedDate);
-  await page
-    .getByLabel("Cobrar Tarifa de Cadastro")
-    .locator("div")
-    .nth(3)
-    .click();
-  await page.getByRole("option", { name: "NÃO" }).locator("span").click();
-  await page
-    .getByLabel("Cobrar Tarifa de Abertura de")
-    .locator("div")
-    .nth(2)
-    .click();
-  await page.getByRole("option", { name: "NÃO" }).locator("span").click();
 
-  // await page.locator('[placeholder="Cobrar Tarifa de Cadastro"]').click();
-  // await page.getByText("NÃO").click();
-  // await page
-  //   .locator('[placeholder="Cobrar Tarifa de Abertura de Crédito"]')
-  //   .click();
-  // await page.getByText("NÃO").click();
+  await page.locator('[data-placeholder="Prazo"]').pressSequentially("76");
+
+  await page
+    .locator('[data-placeholder="Início da Vigência"]')
+    .last()
+    .fill(formattedDate);
+  await page.locator('[data-placeholder="Valor do Limite"]').press("Tab");
 
   // //// /GARANTIA//////////
   await page.click("css=div >> text=Garantias");
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(3000);
   await page.click('[ng-reflect-message="Adicionar Garantia"]');
   await page.locator('[formcontrolname="tipoGarantia"]').click();
-  await page.getByText("Floor Plan").click();
-  await page.getByLabel("% sobre o valor da operação *").click();
-  await page.getByLabel("% sobre o valor da operação *").fill("100");
-  await page.locator('[formcontrolname="tipoGarantia"]').press("Tab");
-  await page.getByLabel("% sobre o valor da operação *").press("Tab");
-  await page.getByRole("button", { name: "Salvar" }).click();
-  await page.getByRole("button", { name: "Salvar" }).click();
+  await page
+    .getByRole("option", { name: "Veículo" })
+    .locator("span")
+    .first()
+    .click();
+  await page.getByLabel("UF de licenciamento *").locator("div").nth(2).click();
+  await page.getByText("RJ").click();
+  await page
+    .getByLabel("Categoria", { exact: true })
+    .getByText("Categoria")
+    .click();
+  await page.getByText("AUTOMOVEL").click();
+  await page.getByLabel("Marca").locator("div").nth(3).click();
+  await page.getByText("FORD").click();
+  await page.getByLabel("Ano Modelo *").locator("div").nth(2).click();
+  await page.getByText("2000").click();
+  await page.getByLabel("Ano Fabricação *").locator("div").nth(3).click();
+  await page.getByText("1999").click();
+  await page.getByLabel("Modelo", { exact: true }).getByText("Modelo").click();
+  await page.getByText("FIESTA").click();
+  await page.getByLabel("Versão").locator("div").nth(3).click();
+  await page.getByText("CLASS 1.0 2P G").click();
+  await page.getByLabel("Placa").click();
+  await page.getByLabel("Placa").fill("GHJ8765");
+  await page.getByLabel("Renavam").click();
+  await page.getByLabel("Renavam").fill("34567876456");
+  await page.getByLabel("Chassi").click();
+  await page.getByLabel("Chassi").fill("6544567890");
+  await page.getByLabel("Combustível").locator("div").nth(3).click();
+  await page.getByText("ÁLCOOL/GNV").click();
+  await page.getByLabel("Cor", { exact: true }).getByText("Cor").click();
+  await page.getByText("CINZA").click();
+  await page.waitForTimeout(3000);
+  await page
+    .getByLabel("Tipo Dados do Fiduciante *")
+    .locator("div")
+    .nth(2)
+    .click();
+  await page.getByRole("option", { name: "Cliente" }).locator("span").click();
+  await page.getByLabel("CPF/CNPJ *").click();
+  await page.getByLabel("CPF/CNPJ *").fill("35543713000186");
+  await page.waitForTimeout(3000);
+  await page.getByLabel("% Sobre a operação *").click();
+  await page.getByLabel("% Sobre a operação *").fill("100");
 
+  await page.getByLabel("% Sobre a operação *").press("Tab");
+  await page.locator('[formcontrolname="tipoGarantia"]').press("Tab");
+  await page.getByLabel("% Sobre a operação *").press("Tab");
+
+  await page.getByRole("button", { name: "Salvar" }).click();
+  await page.getByRole("button", { name: "Salvar" }).click();
+  /////AÇÃO DE ENVIAR PROPOSTA 1    > PRE PROPOSTA PARA ANALISE COMERCIAL
   await page.getByRole("button", { name: " Ações " }).click();
   await page.click('[formcontrolname="acao"]');
   await page.getByText("Enviar Proposta").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
-  await page.waitForTimeout(2000);
 
   //////////AÇÃO DE SALVAR O NUMERO DA PROPOSTA
   const proposta = await page
     .locator('[id="header-proposta-idPropostaCliente"]')
     .innerText();
   await page.getByRole("button", { name: "Salvar" }).click();
+  const preProposta = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-contratual/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await preProposta;
   const id = await page.locator('[id="etapas-proposta__id"]').innerText();
-  await page.waitForTimeout(10000);
 
   let url =
-    "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/capital-giro-rotativo/";
+    "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/limite-contratual/";
   await page.goto(url + id);
-  await page.waitForTimeout(8000);
+
   await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 2.1    > Analise PLD PARA ANALISE COMERCIAL
   await page.getByRole("button", { name: " Ações " }).click();
@@ -316,92 +339,19 @@ test("Giro Rotativo - Dados Dinamicos e Ficticios", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(10000);
-  //await page.pause();
+  const analisePld = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-contratual/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await analisePld;
 
   await page.goto(url + id);
-  await page.waitForTimeout(8000);
+
   await page.reload();
-  // // // // //////RELATÓRIO DE VISITA////
-  // await page.click("css=div >> text=Relatório de Visita");
-  // await page.waitForSelector('[id="relatorio-visita-add-action"]'); // Substitua pelo seletor correto
-  // await page.click('[id="relatorio-visita-add-action"]');
-  // await page.locator('[data-placeholder="Data da visita"]').fill(formattedDate);
-  // await page.getByLabel("Motivo da visita *").locator("div").nth(3).click();
-  // await page.getByText("Acompanhamento").click();
-  // await page
-  //   .locator('[data-placeholder="Data de fundação"]')
-  //   .fill(formattedDate);
-  // await page.getByLabel("Segmento de atuação *").locator("div").nth(3).click();
-  // await page.getByText("Acabamentos Finos").click();
-  // await page.getByLabel("Histórico junto à OMNI").locator("div").nth(2).click();
-  // await page.getByRole("option", { name: "NÃO" }).locator("span").click();
-  // await page.getByLabel("Nº de lojas próprias").click();
-  // await page.getByLabel("Nº de lojas próprias").fill("876");
-  // await page.getByLabel("Nº de lojas alugadas").click();
-  // await page.getByLabel("Nº de lojas alugadas").fill("767");
-  // await page.getByLabel("Nº de funcionários").click();
-  // await page.getByLabel("Nº de funcionários").fill("7667");
-  // await page.getByLabel("Região de atuação").click();
-  // await page.getByLabel("Região de atuação").fill("8765678");
-  // await page.getByLabel("Público alvo").click();
-  // await page.getByLabel("Público alvo").fill("FDFGHj");
-  // await page.getByLabel("Formas de recebimento").click();
-  // await page.getByLabel("Formas de recebimento").fill("GFDSDFg");
-  // await page.getByLabel("Ticket médio").click();
-  // await page.getByLabel("Valor mínimo financiado").click();
-  // await page.getByLabel("Valor máximo financiado").click();
-  // await page.getByLabel("Prazo médio dos").click();
-  // await page.getByLabel("Prazo médio dos").fill("87");
-  // await page.getByLabel("Prazo máximo dos").click();
-  // await page.getByLabel("Prazo máximo dos").fill("876");
-  // await page.getByLabel("Prazo médio de Carência (").click();
-  // await page.getByLabel("Prazo médio de Carência (").fill("876");
-  // await page
-  //   .getByLabel("Prazo máximo de carência (meses)", { exact: true })
-  //   .click();
-  // await page
-  //   .getByLabel("Prazo máximo de carência (meses)", { exact: true })
-  //   .fill("876");
-  // await page.getByLabel("Opera com crediário próprio").locator("span").click();
-  // await page.getByText("SIM", { exact: true }).click();
-  // await page.getByLabel("Descreva o nome do crediário *").click();
-  // await page.getByLabel("Descreva o nome do crediário *").fill("UYTRESDFg");
-  // await page.getByLabel("Possui bureau próprio").locator("span").click();
-  // await page.getByRole("option", { name: "NÃO" }).locator("span").click();
-  // // await page.getByLabel("Possui bureau próprio").locator("span").click();
-  // // await page.getByRole("combobox", { name: "Possui bureau próprio" }).click();
-  // // await page.locator(".cdk-overlay-container > div:nth-child(3)").click();
-  // // await page.getByLabel("Nome do bureau *").click();
-  // // await page.getByLabel("Nome do bureau *").fill("TESTe");
-  // await page
-  //   .locator("div")
-  //   .filter({ hasText: /^Realiza a negativação$/ })
-  //   .click();
-  // await page.getByRole("option", { name: "NÃO" }).locator("span").click();
-  // await page
-  //   .getByLabel("Recebimento em loja", { exact: true })
-  //   .locator("span")
-  //   .click();
-  // await page.getByRole("option", { name: "NÃO" }).locator("span").click();
-  // await page.getByLabel("Histórico do cliente/visita *").click();
-  // await page.getByLabel("Histórico do cliente/visita *").fill("TESTe");
-  // await page.getByLabel("Originação/ Relacionamento").click();
-  // await page.getByLabel("Originação/ Relacionamento").fill("TESTe");
-  // await page.getByLabel("Alteração societária *").click();
-  // await page.getByLabel("Alteração societária *").fill("TESTe");
-  // await page.getByLabel("Justificativas restrições *").click();
-  // await page.getByLabel("Justificativas restrições *").fill("TESTe");
-  // await page.getByLabel("Pontos fortes *").click();
-  // await page.getByLabel("Pontos fortes *").fill("TESTe");
-  // await page.getByLabel("Pontos fracos *").click();
-  // await page.getByLabel("Pontos fracos *").fill("TESTe");
-  // await page.getByLabel("Parecer comercial *").click();
-  // await page.getByLabel("Parecer comercial *").fill("TESTe");
-  // await page.getByRole("button", { name: "Salvar" }).click();
-  // await page.getByRole("button", { name: "Salvar" }).click();
-  // await page.waitForTimeout(3000);
-  // await page.reload();
 
   /////AÇÃO DE ENVIAR PROPOSTA 3    > ANALISE COMERCIAL PARA ANALISE DE CREDITO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -409,32 +359,38 @@ test("Giro Rotativo - Dados Dinamicos e Ficticios", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  //await page.pause();
-  await page.waitForTimeout(10000);
+  const analiseComercial = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-contratual/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await analiseComercial;
 
   await page.goto(
     "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/fila-agente"
   );
   await page.click("css=div >> text=Em Análise");
-  //await page.getByRole('button').filter({ hasText: ' Filtrar Propostas ' }).click();
+
   await page
     .getByRole("button")
     .filter({ hasText: " Filtrar Propostas " })
     .nth(1)
     .click();
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(3000);
   await page.locator('[data-placeholder="Nº Proposta"]').fill(proposta);
-  await page.waitForTimeout(10000);
-  //await page.pause();
-  await page.locator('[ng-reflect-message="Giro Rotativo"]').click();
+  await page.waitForTimeout(6000);
+
+  await page.locator('[ng-reflect-message="Omni Plus"]').click();
   await expect(page.locator(".mat-checkbox-inner-container")).toBeVisible({
     timeout: 30_000,
   });
-  // await page.waitForTimeout(10000);
 
   await page.click("css=div >> text=Bureau de Crédito");
   await page.click("css=div >> text=Redisparo da crivo Manual");
-  await page.waitForTimeout(10000);
+  await page.waitForTimeout(8000);
   /////AÇÃO DE ENVIAR PROPOSTA 4    >  ANALISE DE CREDITO PARA APROVADO
   await page.getByRole("button", { name: " Ações " }).click();
   await expect(page.locator('[formcontrolname="acao"]')).toBeVisible({
@@ -445,18 +401,34 @@ test("Giro Rotativo - Dados Dinamicos e Ficticios", async ({ page }) => {
   await page.locator('[data-placeholder="Data do Comitê"]').fill(formattedDate);
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(120000);
-  //await page.pause();
-  //await page.reload();
+  const etapaCrivo = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-contratual/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+    page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            "/mesa-credito-pj/api/agent-queue?status=PRE_PROPOSTA&sort=id,asc&page=0&size=10"
+          ) && response.status() === 200,
+      { timeout: 13_0000 }
+    ),
+  ]);
+
+  await etapaCrivo;
   await page.goto(url + id);
   await page.reload();
 
   ////AÇÃO DE ENVIAR PROPOSTA 5   >  APROVADO PARA PRE FORMALIZAÇÃO
   await page.click("css=div >> text=Dados Bancários");
   await page.getByRole("button", { name: " Buscar conta(s) " }).click();
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(4000);
   await page.locator('[formcontrolname="codigoAgencia"]').first().fill("1234");
-  //await page.waitForTimeout(2000);
+
   await page.locator('[formcontrolname="descricaoAgencia"]').first().click();
   await page
     .locator('[formcontrolname="descricaoAgencia"]')
@@ -472,32 +444,25 @@ test("Giro Rotativo - Dados Dinamicos e Ficticios", async ({ page }) => {
     .fill("12");
   await page.locator('[formcontrolname="contaVinculada"]').fill("789123");
   await page.click("css=button >> text=Salvar");
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(2000);
   await page.getByRole("button", { name: " Ações " }).click();
   await page.click('[formcontrolname="acao"]');
   await page.getByText("Enviar Pré-Formalização").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  const statusAprovado = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-contratual/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await statusAprovado;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(10000);
+
   await page.reload();
-
-  // /////PROCESSO PARA UPLOAD CERTIFICADO UNICAD
-  // await page.click("css=div >> text=Documentos");
-  // const fileChooserPromise = page.waitForEvent("filechooser");
-
-  // await page.click('[ng-reflect-message="Anexar Cadastro UNICAD"]');
-  // const fileChooser = await fileChooserPromise;
-
-  // await fileChooser.setFiles("support/fixtures/images/imagem1.png");
-
-  // await page.getByRole("button", { name: "Salvar" }).click();
-
-  // await page.goto(url + id);
-  // //await page.waitForTimeout(10000);
-  // await page.reload();
 
   ////AÇÃO DE ENVIAR PROPOSTA 5   >  PRE FORMALIZAÇÃO PARA FORMALIZAÇÃO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -505,17 +470,17 @@ test("Giro Rotativo - Dados Dinamicos e Ficticios", async ({ page }) => {
   await page.getByText("Enviar Formalização").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(3000);
-
-  // await page.goto(url + id);
-  // //await page.waitForTimeout(8000);
-  // await page.reload();
-  // await page.click("css=div >> text=Proposta de Negócios");
-  // await page.click('[ng-reflect-message="Gerar Contrato"]');
-  // await page.waitForTimeout(8000);
-
+  const preFormalizacao = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-contratual/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_0000 }
+    ),
+  ]);
+  await preFormalizacao;
   await page.goto(url + id);
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(3000);
   await page.reload();
 
   /////AÇÃO DE ENVIAR PROPOSTA 6   > FORMALIZAÇÃO PARA AGUARDANDO ASSINATURA
@@ -524,10 +489,18 @@ test("Giro Rotativo - Dados Dinamicos e Ficticios", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(5000);
+  const statusFormalizacao = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-contratual/api/proposals") &&
+        response.status() === 200,
+      { timeout: 80_000 }
+    ),
+  ]);
+  await statusFormalizacao;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(8000);
+
   await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 7   > AGUARDANDO ASSINATURA PARA AGUARDANDO LIBERAÇÃO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -535,19 +508,36 @@ test("Giro Rotativo - Dados Dinamicos e Ficticios", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  const aguardandoAssinatura = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-contratual/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await aguardandoAssinatura;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(8000);
+
   await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 8   > AGUARDANDO LIBERAÇÃO PARA AGUARDANDO CONTRATO
   await page.getByRole("button", { name: " Ações " }).click();
   await page.click('[formcontrolname="acao"]');
-  await page.locator('[ng-reflect-value="approve"]').click();
+  await page.getByText("Aprovar com Implantação Manual").click();
+
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  // await page.waitForTimeout(8000);
-
+  await page.getByRole("button", { name: " Ok " }).click();
+  const aguardandoLiberacao = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-contratual/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await aguardandoLiberacao;
   // await page.goto(url + id);
   // //await page.waitForTimeout(5000);
   // await page.reload();
