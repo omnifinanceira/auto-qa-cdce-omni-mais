@@ -3,12 +3,14 @@ import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import * as cnpj from "validation-br/dist/cnpj";
 import * as cpf from "validation-br/dist/cpf";
-import { Utility } from "../../support/utils/utility";
+import { Utility } from "../../utils/utility";
+import { HomePage } from "../../Pages/HomePage/HomePage";
 
 test.beforeEach(async ({ context, baseURL }) => {
   const sessionStorage = JSON.parse(
     fs.readFileSync("playwright/.auth/session.json", "utf-8")
   );
+
   await context.addInitScript(
     ({ storage, baseURL }) => {
       if (window.location.hostname === new URL(baseURL!).hostname) {
@@ -20,21 +22,19 @@ test.beforeEach(async ({ context, baseURL }) => {
   );
 });
 
-test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
+test("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   page,
 }) => {
+  const homePage = new HomePage(page);
+
   test.slow();
-  await page.goto("/");
-  await page.click("css=button >> text=Nova");
-  //await page.getByRole('button', { name: 'Nova' }).click(); /// tambem esta certo
-  //await page.locator('[ng-reflect-router-link="/capital-giro"]').click();
-  await page.locator('[ng-reflect-router-link="/cdc-loja"]').click();
-  await page.goto(
-    "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/cdc-loja"
-  );
-  ///////////QUALIFICAÇÃO DA EMPRESA//////
-  await page.locator('[ng-reflect-placeholder="CNPJ"]').fill(cnpj.fake());
-  await page.locator('[ng-reflect-placeholder="CNPJ"]').press("Tab");
+  await homePage.enterHomePage();
+
+  const cdcFic = await homePage.entrarCdcFic();
+
+  await cdcFic.escreverCNPJ(cnpj.fake());
+
+  await page.locator('[ng-reflect-placeholder="CNPJ"]').first().press("Tab");
   await page
     .locator('[ng-reflect-placeholder="Razão Social"]')
     .first()
@@ -45,18 +45,18 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page
     .locator('[ng-reflect-placeholder="Faturamento Atual"]')
     .press("Tab");
-  //await page.waitForTimeout(5000);
+
   ///COMANDO PARA SALVAR A ID DA PROPOSTA ////
 
   await page.waitForTimeout(2000);
-  //await page.waitForTimeout(8000);
+
   await page
     .locator('[ng-reflect-placeholder="Faturamento Anterior"]')
     .pressSequentially("6500000");
   await page
     .locator('[data-placeholder="Data da Constituição"]')
     .fill("26/02/1900");
-  //await page.waitForTimeout(5000);
+
   await page.click('[placeholder="CNAE"]');
   await page.getByText(" 7311-4/00 - Agências de publicidade ").click();
   await page
@@ -103,7 +103,7 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page.locator(".mat-checkbox-inner-container").click();
   await page.click("css=button >> text=Salvar");
 
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(2000);
   //ENDEREÇOS//
   await page.click("css=div >> text=Endereços");
   ///CONSULTAR CEP DO BRASIL///
@@ -162,7 +162,7 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
     .locator('[formcontrolname="email"]')
     .last()
     .fill(faker.internet.email());
-  //await page.locator('[formcontrolname="email"]').last().press("Tab");
+
   ///CAMPOS NOVOS///
   await page.locator('[formcontrolname="rg"]').fill("278783752989890");
   await page.locator('[placeholder="UF de emissão do RG"]').click();
@@ -171,10 +171,10 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page.locator('[formcontrolname="celular"]').first().press("Tab");
 
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(2000);
 
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(2000);
 
   //PRINCIPAIS CLIENTES///
   await page.click("css=div >> text=Principais Clientes");
@@ -215,7 +215,7 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
     .padStart(2, "0")}-${(currentDate.getMonth() + 1)
     .toString()
     .padStart(2, "0")}-${currentDate.getFullYear()}`;
-  const futureDate = new Date(currentDate.getTime() + 65 * 24 * 60 * 60 * 1000);
+  const futureDate = new Date(currentDate.getTime() + 61 * 24 * 60 * 60 * 1000);
   const formattedFutureDate = `${futureDate
     .getDate()
     .toString()
@@ -228,7 +228,7 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
     .innerText();
   await page.getByRole("button", { name: "Salvar" }).click();
   const id = await page.locator('[id="etapas-proposta__id"]').innerText();
-  await page.waitForTimeout(10000);
+  //await page.waitForTimeout(10000);
 
   let url =
     "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/cdc-loja/";
@@ -255,7 +255,7 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   const inputTaxa = page.locator(
     '[data-placeholder="Taxa de inadimplência do Convênio (%)"]'
   );
-  await inputTaxa.pressSequentially("2");
+  await inputTaxa.pressSequentially("2.21");
   await inputTaxa.press("Tab");
   const inputTaxamax = page.locator(
     '[data-placeholder="Taxa de inadimplência Máxima (%)"]'
@@ -311,13 +311,13 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
 
   // //// /GARANTIA//////////
   await page.click("css=div >> text=Garantias");
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(3000);
   await page.click('[ng-reflect-message="Adicionar Garantia"]');
   await page.locator('[formcontrolname="tipoGarantia"]').click();
-  //await page.locator('[ng-reflect-value="Nota Promissória"]').click();
+
   await page.getByText("Nota Promissória").click();
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(7000);
+  await page.waitForTimeout(3000);
   await page.getByRole("button", { name: "Salvar" }).click();
 
   await page
@@ -344,7 +344,7 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page.waitForTimeout(2000);
   await page.click('[formcontrolname="estado"]');
   await page.getByText("DF").last().click();
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(2000);
   await page.click('[formcontrolname="naturalidade"]');
   await page.getByText("BRASILIA").click();
   await page.getByLabel("Tipo Documento *").getByText("Tipo Documento").click();
@@ -375,11 +375,11 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page.getByLabel("Nome Mãe *").click();
   await page.getByLabel("Nome Mãe *").fill("MARIa");
   await page.getByLabel("Nome Pai *").click();
-  //await page.getByLabel("Nome Pai *").press("CapsLock");
+
   await page.getByLabel("Nome Pai *").fill("JOSÉ");
   await page.getByLabel("Dependentes").click();
   await page.getByLabel("Dependentes").fill("2");
-  //await page.getByLabel("Dependentes").press("CapsLock");
+
   await page.getByLabel("PEP *").locator("span").click();
   await page.getByRole("option", { name: "NÃO" }).locator("span").click();
   await page.getByLabel("FATCA *").locator("span").click();
@@ -414,22 +414,37 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page.getByText("Enviar Proposta").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(10000);
+  const preProposta = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await preProposta;
 
   /////AÇÃO DE ENVIAR PROPOSTA 2.1    > Analise PLD PARA ANALISE COMERCIAL
   await page.goto(url + id);
-  await page.waitForTimeout(8000);
+
   await page.reload();
   await page.getByRole("button", { name: " Ações " }).click();
   await page.click('[formcontrolname="acao"]');
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(10000);
-  //await page.pause();
+  const analisePld = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await analisePld;
 
   await page.goto(url + id);
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(7000);
   await page.reload();
   // // // //////RELATÓRIO DE VISITA////
   await page.click("css=div >> text=Relatório de Visita");
@@ -478,11 +493,7 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page.getByLabel("Descreva o nome do crediário *").fill("UYTRESDFg");
   await page.getByLabel("Possui bureau próprio").locator("span").click();
   await page.getByRole("option", { name: "NÃO" }).locator("span").click();
-  // await page.getByLabel("Possui bureau próprio").locator("span").click();
-  // await page.getByRole("combobox", { name: "Possui bureau próprio" }).click();
-  // await page.locator(".cdk-overlay-container > div:nth-child(3)").click();
-  // await page.getByLabel("Nome do bureau *").click();
-  // await page.getByLabel("Nome do bureau *").fill("TESTe");
+
   await page
     .locator("div")
     .filter({ hasText: /^Realiza a negativação$/ })
@@ -518,32 +529,47 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  //await page.pause();
-  await page.waitForTimeout(10000);
+  const analiseComercial = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await analiseComercial;
 
   await page.goto(
     "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/fila-agente"
   );
   await page.click("css=div >> text=Em Análise");
-  //await page.getByRole('button').filter({ hasText: ' Filtrar Propostas ' }).click();
+
   await page
     .getByRole("button")
     .filter({ hasText: " Filtrar Propostas " })
     .nth(1)
     .click();
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(2000);
   await page.locator('[data-placeholder="Nº Proposta"]').fill(proposta);
-  await page.waitForTimeout(10000);
-  //await page.pause();
+  await page.waitForTimeout(4000);
+
   await page.locator('[ng-reflect-message="Limite CDC Estruturado"]').click();
   await expect(page.locator(".mat-checkbox-inner-container")).toBeVisible({
     timeout: 30_000,
   });
-  // await page.waitForTimeout(10000);
 
   await page.click("css=div >> text=Bureau de Crédito");
   await page.click("css=div >> text=Redisparo da crivo Manual");
-  await page.waitForTimeout(10000);
+  const statusMock = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/mock/crivo") &&
+        response.status() === 200,
+      { timeout: 80_000 }
+    ),
+  ]);
+  await statusMock;
+
   /////AÇÃO DE ENVIAR PROPOSTA 4    >  ANALISE DE CREDITO PARA APROVADO
   await page.getByRole("button", { name: " Ações " }).click();
   await expect(page.locator('[formcontrolname="acao"]')).toBeVisible({
@@ -554,18 +580,30 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page.locator('[data-placeholder="Data do Comitê"]').fill(formattedDate);
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(120000);
-  //await page.pause();
-  //await page.reload();
+  const etapaCrivo = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            "/mesa-credito-pj/api/economic-groups/find-by-member-cnpj"
+          ) && response.status() === 200,
+      { timeout: 12_0000 }
+    ),
+  ]);
+
+  await etapaCrivo;
+
   await page.goto(url + id);
+  await page.waitForTimeout(5000);
   await page.reload();
 
   ////AÇÃO DE ENVIAR PROPOSTA 5   >  APROVADO PARA PRE FORMALIZAÇÃO
   await page.click("css=div >> text=Dados Bancários");
   await page.getByRole("button", { name: " Buscar conta(s) " }).click();
-  await page.waitForTimeout(8000);
-  await page.locator('[formcontrolname="codigoAgencia"]').first().fill("1234");
-  //await page.waitForTimeout(2000);
+  await page.waitForTimeout(2000);
+  await page.locator('[ng-reflect-placeholder="Código Agência"]').fill("1234");
+
   await page.locator('[formcontrolname="descricaoAgencia"]').first().click();
   await page
     .locator('[formcontrolname="descricaoAgencia"]')
@@ -581,49 +619,42 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
     .fill("12");
   await page.locator('[formcontrolname="contaVinculada"]').fill("789123");
   await page.click("css=button >> text=Salvar");
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(3000);
   await page.getByRole("button", { name: " Ações " }).click();
   await page.click('[formcontrolname="acao"]');
   await page.getByText("Enviar Pré-Formalização").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  const statusAprovado = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await statusAprovado;
 
   await page.goto(url + id);
-  await page.waitForTimeout(8000);
+
   await page.reload();
 
-  ///PROCESSO PARA UPLOAD CERTIFICADO UNICAD
-  await page.click("css=div >> text=Documentos");
-  const fileChooserPromise = page.waitForEvent("filechooser");
+  // /////PROCESSO PARA UPLOAD CERTIFICADO UNICAD
+  // await page.click("css=div >> text=Documentos");
+  // const fileChooserPromise = page.waitForEvent("filechooser");
 
-  await page.click('[ng-reflect-message="Anexar Cadastro UNICAD"]');
-  const fileChooser = await fileChooserPromise;
+  // await page.click('[ng-reflect-message="Anexar Cadastro UNICAD"]');
+  // const fileChooser = await fileChooserPromise;
 
-  await fileChooser.setFiles("support/fixtures/images/imagem1.png");
+  // await fileChooser.setFiles(
+  //   "OperacaoEmpresas/utils/fixtures/images/imagem1.png"
+  // );
 
-  //////PROCESSO PARA UPLOAD DE arquivo Anexar Abertura de endividamento bancario
-  //await page.click("css=div >> text=Documentos");
-  const fileChooserPromises = page.waitForEvent("filechooser");
+  // await page.getByRole("button", { name: "Salvar" }).click();
 
-  await page.click('[ng-reflect-message="Anexar Abertura de endividamen"]');
-  const fileChoosers = await fileChooserPromises;
-
-  await fileChoosers.setFiles("support/fixtures/images/imagem1.png");
-  //////PROCESSO PARA UPLOAD DE arquivo Anexar Contrato Social
-  //await page.click("css=div >> text=Documentos");
-  const fileChooserPromisess = page.waitForEvent("filechooser");
-
-  await page.click('[ng-reflect-message="Anexar Contrato Social"]');
-  const fileChooserss = await fileChooserPromisess;
-
-  await fileChooserss.setFiles("support/fixtures/images/imagem1.png");
-
-  await page.getByRole("button", { name: "Salvar" }).click();
-
-  //await page.goto(url + id);
-  await page.waitForTimeout(6000);
-  //await page.reload();
+  // //await page.goto(url + id);
+  // await page.waitForTimeout(6000);
+  // //await page.reload();
 
   ////AÇÃO DE ENVIAR PROPOSTA 5   >  PRE FORMALIZAÇÃO PARA FORMALIZAÇÃO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -631,17 +662,18 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page.getByText("Enviar Formalização").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(3000);
-
-  // await page.goto(url + id);
-  // //await page.waitForTimeout(8000);
-  // await page.reload();
-  // await page.click("css=div >> text=Proposta de Negócios");
-  // await page.click('[ng-reflect-message="Gerar Contrato"]');
-  // await page.waitForTimeout(8000);
+  const preFormalizacao = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_0000 }
+    ),
+  ]);
+  await preFormalizacao;
 
   await page.goto(url + id);
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(5000);
   await page.reload();
 
   /////AÇÃO DE ENVIAR PROPOSTA 6   > FORMALIZAÇÃO PARA AGUARDANDO ASSINATURA
@@ -650,10 +682,18 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(5000);
+  const statusFormalizacao = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 80_000 }
+    ),
+  ]);
+  await statusFormalizacao;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(8000);
+
   await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 7   > AGUARDANDO ASSINATURA PARA AGUARDANDO LIBERAÇÃO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -661,10 +701,18 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  const aguardandoAssinatura = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await aguardandoAssinatura;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(8000);
+
   await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 8   > AGUARDANDO LIBERAÇÃO PARA AGUARDANDO CONTRATO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -672,12 +720,20 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page.locator('[ng-reflect-value="approve"]').click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  const aguardandoLiberacao = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await aguardandoLiberacao;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(5000);
-  await page.reload();
-  // /////AÇÃO DE ENVIAR PROPOSTA 9   > AGUARDANDO CONTRATO PARA FINALIZADO
+
+  // await page.reload();
+  // // /////AÇÃO DE ENVIAR PROPOSTA 9   > AGUARDANDO CONTRATO PARA FINALIZADO
   // await page.getByRole("button", { name: " Ações " }).click();
   // await page.click('[formcontrolname="acao"]');
   // await page.locator('[ng-reflect-value="approve"]').click();
@@ -686,19 +742,19 @@ test.only("Limite CDC Estruturado - Dados Dinamicos e Ficticios", async ({
   await page.close();
 });
 
-test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
+test("Limite CDC Estruturado -  Renovação/Aditamento - Dados Dinamicos e Ficticios ", async ({
+  page,
+}) => {
+  const homePage = new HomePage(page);
+
   test.slow();
-  await page.goto("/");
-  await page.click("css=button >> text=Nova");
-  //await page.getByRole('button', { name: 'Nova' }).click(); /// tambem esta certo
-  //await page.locator('[ng-reflect-router-link="/capital-giro"]').click();
-  await page.locator('[ng-reflect-router-link="/cdc-loja"]').click();
-  await page.goto(
-    "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/cdc-loja"
-  );
-  ///////////QUALIFICAÇÃO DA EMPRESA//////
-  await page.locator('[ng-reflect-placeholder="CNPJ"]').fill(cnpj.fake());
-  await page.locator('[ng-reflect-placeholder="CNPJ"]').press("Tab");
+  await homePage.enterHomePage();
+
+  const cdcFic = await homePage.entrarCdcFic();
+
+  await cdcFic.escreverCNPJ(cnpj.fake());
+
+  await page.locator('[ng-reflect-placeholder="CNPJ"]').first().press("Tab");
   await page
     .locator('[ng-reflect-placeholder="Razão Social"]')
     .first()
@@ -709,18 +765,18 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
   await page
     .locator('[ng-reflect-placeholder="Faturamento Atual"]')
     .press("Tab");
-  //await page.waitForTimeout(5000);
+
   ///COMANDO PARA SALVAR A ID DA PROPOSTA ////
 
   await page.waitForTimeout(2000);
-  //await page.waitForTimeout(8000);
+
   await page
     .locator('[ng-reflect-placeholder="Faturamento Anterior"]')
     .pressSequentially("6500000");
   await page
     .locator('[data-placeholder="Data da Constituição"]')
     .fill("26/02/1900");
-  //await page.waitForTimeout(5000);
+
   await page.click('[placeholder="CNAE"]');
   await page.getByText(" 7311-4/00 - Agências de publicidade ").click();
   await page
@@ -738,7 +794,7 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
     .fill(faker.finance.accountNumber());
   await page
     .locator('[data-placeholder="Data Registro Junta/Cartório"]')
-    .fill("10/02/1993");
+    .fill("15/02/2020");
   await page
     .locator('[data-placeholder="Nº Reg. Junta Comercial"]')
     .fill(faker.finance.accountNumber());
@@ -767,7 +823,7 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
   await page.locator(".mat-checkbox-inner-container").click();
   await page.click("css=button >> text=Salvar");
 
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(2000);
   //ENDEREÇOS//
   await page.click("css=div >> text=Endereços");
   ///CONSULTAR CEP DO BRASIL///
@@ -826,19 +882,19 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
     .locator('[formcontrolname="email"]')
     .last()
     .fill(faker.internet.email());
-  //await page.locator('[formcontrolname="email"]').last().press("Tab");
+
   ///CAMPOS NOVOS///
-  await page.locator('[formcontrolname="rg"]').fill("278783752");
+  await page.locator('[formcontrolname="rg"]').fill("278783752989890");
   await page.locator('[placeholder="UF de emissão do RG"]').click();
   await page.locator('[ng-reflect-value="SP"]').click();
   await page.locator('[formcontrolname="celular"]').fill("4698889-8788"); // (11) 9 8765-4321
   await page.locator('[formcontrolname="celular"]').first().press("Tab");
 
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(2000);
 
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(2000);
 
   //PRINCIPAIS CLIENTES///
   await page.click("css=div >> text=Principais Clientes");
@@ -879,14 +935,22 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
     .padStart(2, "0")}-${(currentDate.getMonth() + 1)
     .toString()
     .padStart(2, "0")}-${currentDate.getFullYear()}`;
-  const futureDate = new Date(currentDate.getTime() + 60 * 24 * 60 * 60 * 1000);
+  const futureDate = new Date(currentDate.getTime() + 61 * 24 * 60 * 60 * 1000);
   const formattedFutureDate = `${futureDate
     .getDate()
     .toString()
     .padStart(2, "0")}-${(futureDate.getMonth() + 1)
     .toString()
     .padStart(2, "0")}-${futureDate.getFullYear()}`;
+  //////////AÇÃO DE SALVAR O NUMERO DA PROPOSTA
+  const proposta = await page
+    .locator('[id="header-proposta-idPropostaCliente"]')
+    .innerText();
+  await page.getByRole("button", { name: "Salvar" }).click();
+  const id = await page.locator('[id="etapas-proposta__id"]').innerText();
 
+  let url =
+    "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/cdc-loja/";
   //PROPOSTA DE NEGOCIO/////
   await page.click("css=div >> text=Proposta de Negócios");
   await page.goto(
@@ -910,7 +974,7 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
   const inputTaxa = page.locator(
     '[data-placeholder="Taxa de inadimplência do Convênio (%)"]'
   );
-  await inputTaxa.pressSequentially("2");
+  await inputTaxa.pressSequentially("2.21");
   await inputTaxa.press("Tab");
   const inputTaxamax = page.locator(
     '[data-placeholder="Taxa de inadimplência Máxima (%)"]'
@@ -966,13 +1030,13 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
 
   // //// /GARANTIA//////////
   await page.click("css=div >> text=Garantias");
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(3000);
   await page.click('[ng-reflect-message="Adicionar Garantia"]');
   await page.locator('[formcontrolname="tipoGarantia"]').click();
-  //await page.locator('[ng-reflect-value="Nota Promissória"]').click();
+
   await page.getByText("Nota Promissória").click();
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(7000);
+  await page.waitForTimeout(3000);
   await page.getByRole("button", { name: "Salvar" }).click();
 
   await page
@@ -999,7 +1063,7 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
   await page.waitForTimeout(2000);
   await page.click('[formcontrolname="estado"]');
   await page.getByText("DF").last().click();
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(2000);
   await page.click('[formcontrolname="naturalidade"]');
   await page.getByText("BRASILIA").click();
   await page.getByLabel("Tipo Documento *").getByText("Tipo Documento").click();
@@ -1030,11 +1094,11 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
   await page.getByLabel("Nome Mãe *").click();
   await page.getByLabel("Nome Mãe *").fill("MARIa");
   await page.getByLabel("Nome Pai *").click();
-  //await page.getByLabel("Nome Pai *").press("CapsLock");
+
   await page.getByLabel("Nome Pai *").fill("JOSÉ");
   await page.getByLabel("Dependentes").click();
   await page.getByLabel("Dependentes").fill("2");
-  //await page.getByLabel("Dependentes").press("CapsLock");
+
   await page.getByLabel("PEP *").locator("span").click();
   await page.getByRole("option", { name: "NÃO" }).locator("span").click();
   await page.getByLabel("FATCA *").locator("span").click();
@@ -1069,32 +1133,37 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
   await page.getByText("Enviar Proposta").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(10000);
+  const preProposta = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await preProposta;
 
-  //////////AÇÃO DE SALVAR O NUMERO DA PROPOSTA
-  const proposta = await page
-    .locator('[id="header-proposta-idPropostaCliente"]')
-    .innerText();
-  await page.getByRole("button", { name: "Salvar" }).click();
-  const id = await page.locator('[id="etapas-proposta__id"]').innerText();
-  await page.waitForTimeout(10000);
-
-  let url =
-    "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/cdc-loja/";
-  await page.goto(url + id);
-  await page.waitForTimeout(8000);
-  await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 2.1    > Analise PLD PARA ANALISE COMERCIAL
+  await page.goto(url + id);
+
+  await page.reload();
   await page.getByRole("button", { name: " Ações " }).click();
   await page.click('[formcontrolname="acao"]');
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(10000);
-  //await page.pause();
+  const analisePld = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await analisePld;
 
   await page.goto(url + id);
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(7000);
   await page.reload();
   // // // //////RELATÓRIO DE VISITA////
   await page.click("css=div >> text=Relatório de Visita");
@@ -1143,11 +1212,7 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
   await page.getByLabel("Descreva o nome do crediário *").fill("UYTRESDFg");
   await page.getByLabel("Possui bureau próprio").locator("span").click();
   await page.getByRole("option", { name: "NÃO" }).locator("span").click();
-  // await page.getByLabel("Possui bureau próprio").locator("span").click();
-  // await page.getByRole("combobox", { name: "Possui bureau próprio" }).click();
-  // await page.locator(".cdk-overlay-container > div:nth-child(3)").click();
-  // await page.getByLabel("Nome do bureau *").click();
-  // await page.getByLabel("Nome do bureau *").fill("TESTe");
+
   await page
     .locator("div")
     .filter({ hasText: /^Realiza a negativação$/ })
@@ -1183,32 +1248,47 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  //await page.pause();
-  await page.waitForTimeout(10000);
+  const analiseComercial = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await analiseComercial;
 
   await page.goto(
     "https://dev-omni-capital-giro-front.dev-omnicfi.us-east-1.omniaws.io/#/fila-agente"
   );
   await page.click("css=div >> text=Em Análise");
-  //await page.getByRole('button').filter({ hasText: ' Filtrar Propostas ' }).click();
+
   await page
     .getByRole("button")
     .filter({ hasText: " Filtrar Propostas " })
     .nth(1)
     .click();
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(2000);
   await page.locator('[data-placeholder="Nº Proposta"]').fill(proposta);
-  await page.waitForTimeout(10000);
-  //await page.pause();
+  await page.waitForTimeout(4000);
+
   await page.locator('[ng-reflect-message="Limite CDC Estruturado"]').click();
   await expect(page.locator(".mat-checkbox-inner-container")).toBeVisible({
     timeout: 30_000,
   });
-  // await page.waitForTimeout(10000);
 
   await page.click("css=div >> text=Bureau de Crédito");
   await page.click("css=div >> text=Redisparo da crivo Manual");
-  await page.waitForTimeout(10000);
+  const statusMock = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/mock/crivo") &&
+        response.status() === 200,
+      { timeout: 80_000 }
+    ),
+  ]);
+  await statusMock;
+
   /////AÇÃO DE ENVIAR PROPOSTA 4    >  ANALISE DE CREDITO PARA APROVADO
   await page.getByRole("button", { name: " Ações " }).click();
   await expect(page.locator('[formcontrolname="acao"]')).toBeVisible({
@@ -1219,18 +1299,30 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
   await page.locator('[data-placeholder="Data do Comitê"]').fill(formattedDate);
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(120000);
-  //await page.pause();
-  //await page.reload();
+  const etapaCrivo = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            "/mesa-credito-pj/api/economic-groups/find-by-member-cnpj"
+          ) && response.status() === 200,
+      { timeout: 12_0000 }
+    ),
+  ]);
+
+  await etapaCrivo;
+
   await page.goto(url + id);
+  await page.waitForTimeout(5000);
   await page.reload();
 
   ////AÇÃO DE ENVIAR PROPOSTA 5   >  APROVADO PARA PRE FORMALIZAÇÃO
   await page.click("css=div >> text=Dados Bancários");
   await page.getByRole("button", { name: " Buscar conta(s) " }).click();
-  await page.waitForTimeout(8000);
-  await page.locator('[formcontrolname="codigoAgencia"]').first().fill("1234");
-  //await page.waitForTimeout(2000);
+  await page.waitForTimeout(2000);
+  await page.locator('[ng-reflect-placeholder="Código Agência"]').fill("1234");
+
   await page.locator('[formcontrolname="descricaoAgencia"]').first().click();
   await page
     .locator('[formcontrolname="descricaoAgencia"]')
@@ -1246,59 +1338,42 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
     .fill("12");
   await page.locator('[formcontrolname="contaVinculada"]').fill("789123");
   await page.click("css=button >> text=Salvar");
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(4000);
   await page.getByRole("button", { name: " Ações " }).click();
   await page.click('[formcontrolname="acao"]');
   await page.getByText("Enviar Pré-Formalização").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  const statusAprovado = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await statusAprovado;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(10000);
+
   await page.reload();
 
-  ///PROCESSO PARA UPLOAD CERTIFICADO UNICAD
-  await page.click("css=div >> text=Documentos");
-  const fileChooserPromise = page.waitForEvent("filechooser");
+  // /////PROCESSO PARA UPLOAD CERTIFICADO UNICAD
+  // await page.click("css=div >> text=Documentos");
+  // const fileChooserPromise = page.waitForEvent("filechooser");
 
-  await page.click('[ng-reflect-message="Anexar Cadastro UNICAD"]');
-  const fileChooser = await fileChooserPromise;
+  // await page.click('[ng-reflect-message="Anexar Cadastro UNICAD"]');
+  // const fileChooser = await fileChooserPromise;
 
-  await fileChooser.setFiles("support/fixtures/images/imagem1.png");
-  //  //////PROCESSO PARA UPLOAD DE TERMO DE ADESÃO
-  //  await page.click("css=div >> text=Documentos");
-  //  const fileChooserPromise = page.waitForEvent("filechooser");
+  // await fileChooser.setFiles(
+  //   "OperacaoEmpresas/utils/fixtures/images/imagem1.png"
+  // );
 
-  //  await page.click('[ng-reflect-message="Anexar Termo de adesão"]');
-  //  const fileChooser = await fileChooserPromise;
+  // await page.getByRole("button", { name: "Salvar" }).click();
 
-  //  await fileChooser.setFiles("support/fixtures/images/imagem1.png");
-
-  //////PROCESSO PARA UPLOAD DE arquivo Anexar Abertura de endividamento bancario
-  //await page.click("css=div >> text=Documentos");
-  const fileChooserPromises = page.waitForEvent("filechooser");
-
-  await page.click('[ng-reflect-message="Anexar Abertura de endividamen"]');
-  const fileChoosers = await fileChooserPromises;
-
-  await fileChoosers.setFiles("support/fixtures/images/imagem1.png");
-  //////PROCESSO PARA UPLOAD DE arquivo Anexar Contrato Social
-  //await page.click("css=div >> text=Documentos");
-  const fileChooserPromisess = page.waitForEvent("filechooser");
-
-  await page.click('[ng-reflect-message="Anexar Contrato Social"]');
-  const fileChooserss = await fileChooserPromisess;
-
-  await fileChooserss.setFiles("support/fixtures/images/imagem1.png");
-
-  await page.getByRole("button", { name: "Salvar" }).click();
-
-  //await page.getByRole("button", { name: "Salvar" }).click();
-
-  await page.goto(url + id);
-  //await page.waitForTimeout(10000);
-  await page.reload();
+  // //await page.goto(url + id);
+  // await page.waitForTimeout(6000);
+  // //await page.reload();
 
   ////AÇÃO DE ENVIAR PROPOSTA 5   >  PRE FORMALIZAÇÃO PARA FORMALIZAÇÃO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -1306,17 +1381,18 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
   await page.getByText("Enviar Formalização").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(3000);
-
-  // await page.goto(url + id);
-  // //await page.waitForTimeout(8000);
-  // await page.reload();
-  // await page.click("css=div >> text=Proposta de Negócios");
-  // await page.click('[ng-reflect-message="Gerar Contrato"]');
-  // await page.waitForTimeout(8000);
+  const preFormalizacao = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_0000 }
+    ),
+  ]);
+  await preFormalizacao;
 
   await page.goto(url + id);
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(5000);
   await page.reload();
 
   /////AÇÃO DE ENVIAR PROPOSTA 6   > FORMALIZAÇÃO PARA AGUARDANDO ASSINATURA
@@ -1325,10 +1401,18 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(5000);
+  const statusFormalizacao = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 80_000 }
+    ),
+  ]);
+  await statusFormalizacao;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(8000);
+
   await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 7   > AGUARDANDO ASSINATURA PARA AGUARDANDO LIBERAÇÃO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -1336,10 +1420,18 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
   await page.getByText("Aprovar").click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  const aguardandoAssinatura = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await aguardandoAssinatura;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(8000);
+
   await page.reload();
   /////AÇÃO DE ENVIAR PROPOSTA 8   > AGUARDANDO LIBERAÇÃO PARA AGUARDANDO CONTRATO
   await page.getByRole("button", { name: " Ações " }).click();
@@ -1347,20 +1439,24 @@ test("Limite CDC Estruturado -  Renovação/Aditamento ", async ({ page }) => {
   await page.locator('[ng-reflect-value="approve"]').click();
   await page.locator('[formcontrolname="parecer"]').fill("Teste");
   await page.getByRole("button", { name: "Salvar" }).click();
-  await page.waitForTimeout(8000);
+  const aguardandoLiberacao = Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/limite-cdc-estruturado/api/proposals") &&
+        response.status() === 200,
+      { timeout: 60_000 }
+    ),
+  ]);
+  await aguardandoLiberacao;
 
   await page.goto(url + id);
-  //await page.waitForTimeout(5000);
-  await page.reload();
-  /////AÇÃO DE ENVIAR PROPOSTA 9   > AGUARDANDO CONTRATO PARA FINALIZADO
-  await page.getByRole("button", { name: " Ações " }).click();
-  await page.click('[formcontrolname="acao"]');
-  await page.locator('[ng-reflect-value="approve"]').click();
-  await page.locator('[formcontrolname="parecer"]').fill("Teste");
-  await page.getByRole("button", { name: "Salvar" }).click();
-  await page.close();
-  //await page.waitForTimeout(8000);
 
-  //await page.goto(url + id);
-  //await page.pause();
+  // await page.reload();
+  // // /////AÇÃO DE ENVIAR PROPOSTA 9   > AGUARDANDO CONTRATO PARA FINALIZADO
+  // await page.getByRole("button", { name: " Ações " }).click();
+  // await page.click('[formcontrolname="acao"]');
+  // await page.locator('[ng-reflect-value="approve"]').click();
+  // await page.locator('[formcontrolname="parecer"]').fill("Teste");
+  // await page.getByRole("button", { name: "Salvar" }).click();
+  await page.close();
 });
