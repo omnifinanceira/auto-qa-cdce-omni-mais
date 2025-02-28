@@ -22,7 +22,7 @@ const playwrightConfig = {
     timeout: 60000,
   },
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
@@ -51,18 +51,34 @@ const playwrightConfig = {
 
   /* Configure projects for major browsers */
   projects: [
+    // {
+    //   name: "setup-chrome",
+    //   testMatch: /.*\.setup\.ts/,
+    //   use: { ...devices["Desktop Chrome"] },
+    // },
+    // {
+    //   name: "chromium",
+    //   grepInvert: [/@OmniMais/],
+    //   use: {
+    //     ...devices["Desktop Chrome"],
+    //     storageState: "playwright/.auth/user.json",
+    //   },
+    //   dependencies: ["setup-chrome"],
+    // },
+
     {
-      name: "setup-chrome",
-      testMatch: /.*\.setup\.ts/,
+      name: "setup-chrome-omnimais",
+      testMatch: /.*\.omnimais\.setup\.ts/,
       use: { ...devices["Desktop Chrome"] },
     },
     {
-      name: "chromium",
+      name: "chromium-omnimais",
+      grepInvert: [/@OmniEmpresas/],
       use: {
         ...devices["Desktop Chrome"],
-        storageState: "playwright/.auth/user.json",
+        storageState: "playwright/.auth/user.omnimais.json",
       },
-      dependencies: ["setup-chrome"],
+      dependencies: ["setup-chrome-omnimais"],
     },
 
     // {
@@ -110,10 +126,17 @@ if (process.env.env) {
   }
 
   for (const project of playwrightConfig.projects) {
-    (project.use as PlaywrightTestProject["use"]) = {
-      ...project.use,
-      baseURL: parsed.BASE_URL,
-    };
+    if (project.name.includes("omnimais")) {
+      (project.use as PlaywrightTestProject["use"]) = {
+        ...project.use,
+        baseURL: parsed.BASE_URL_OMNIMAIS,
+      };
+    } else {
+      (project.use as PlaywrightTestProject["use"]) = {
+        ...project.use,
+        baseURL: parsed.BASE_URL,
+      };
+    }
   }
 }
 

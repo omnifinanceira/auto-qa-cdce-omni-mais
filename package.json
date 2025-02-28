@@ -6,7 +6,9 @@
   "scripts": {
     "test": "npx playwright test",
     "dev": "cross-env env=dev playwright test --project=chromium",
-    "debug:dev": "cross-env env=dev playwright test --debug --project=chromium"
+    "omnimais:dev": "cross-env env=dev playwright test --project=chromium-omnimais",
+    "debug:dev": "cross-env env=dev playwright test --debug --project=chromium",
+    "debug:omnimais:dev": "cross-env env=dev playwright test --debug --project=chromium-omnimais"
   },
   "author": "Cedilaine Bordignon",
   "license": "ISC",

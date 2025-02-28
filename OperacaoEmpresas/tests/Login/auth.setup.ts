@@ -1,25 +1,27 @@
-import { test as setup, expect } from "@playwright/test";
-import ENV from "../../../setup/env";
-import fs from "node:fs";
+// import { test as setup, expect } from "@playwright/test";
+// import ENV from "../../../setup/env";
+// import fs from "node:fs";
 
-const userName = ENV.APPUSERNAME;
-const passWord = ENV.APPPASSWORD;
-const authFile = "playwright/.auth/user.json";
+// ENV.BASE_URL = ENV.BASE_URL;
 
-setup("Realizar login", async ({ page }) => {
-  await page.goto("/");
-  await page.locator('[data-placeholder="Usuário"]').fill(userName);
-  await page.locator('[data-placeholder="Senha"]').fill(passWord);
-  await page.getByRole("button").click();
+// const userName = ENV.APPUSERNAME;
+// const passWord = ENV.APPPASSWORD;
+// const authFile = "playwright/.auth/user.json";
 
-  await expect(page.locator("css=button >> text=Nova")).toBeVisible({
-    timeout: 30_000,
-  });
+// setup("Realizar login OminiEmpresas", async ({ page }) => {
+//   await page.goto("/");
+//   await page.locator('[data-placeholder="Usuário"]').fill(userName);
+//   await page.locator('[data-placeholder="Senha"]').fill(passWord);
+//   await page.getByRole("button").click();
 
-  await page.context().storageState({ path: authFile });
+//   await expect(page.locator("css=button >> text=Nova")).toBeVisible({
+//     timeout: 30_000,
+//   });
 
-  const sessionStoragestr = await page.evaluate(() =>
-    JSON.stringify(sessionStorage)
-  );
-  fs.writeFileSync("playwright/.auth/session.json", sessionStoragestr, "utf-8");
-});
+//   await page.context().storageState({ path: authFile });
+
+//   const sessionStoragestr = await page.evaluate(() =>
+//     JSON.stringify(sessionStorage)
+//   );
+//   fs.writeFileSync("playwright/.auth/session.json", sessionStoragestr, "utf-8");
+// });
